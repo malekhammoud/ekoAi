@@ -1,50 +1,53 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { Editor } from 'tldraw';
+import { useState, useCallback, useRef } from 'react';
 
-export function useHandwritingRecognition(editor: Editor | null) {
+interface Stroke {
+  points: { x: number; y: number }[];
+  color: string;
+  width: number;
+  timestamp: number;
+}
+
+export function useHandwritingRecognition() {
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [recognizedText, setRecognizedText] = useState('');
   const recognitionTimeoutRef = useRef<NodeJS.Timeout>();
-  const lastShapeCountRef = useRef(0);
-  const lastProcessedShapeIds = useRef<Set<string>>(new Set());
+  const lastStrokeCount = useRef(0);
 
-  const processStrokes = useCallback(async () => {
-    if (!editor) return '';
-
+  const processStrokes = useCallback(async (strokes: Stroke[]) => {
     try {
-      const shapes = editor.getCurrentPageShapes();
-      const drawShapes = shapes.filter(shape => shape.type === 'draw');
-      
       console.log('🎨 Processing strokes:', {
-        totalShapes: shapes.length,
-        drawShapes: drawShapes.length,
-        shapeTypes: shapes.map(s => s.type)
+        totalStrokes: strokes.length,
+        strokeDetails: strokes.map(s => ({
+          points: s.points.length,
+          color: s.color,
+          width: s.width
+        }))
       });
 
-      if (drawShapes.length === 0) {
-        console.log('📝 No draw shapes found, clearing text');
+      if (strokes.length === 0) {
+        console.log('📝 No strokes found, clearing text');
         return '';
       }
 
-      // Check for new shapes
-      const currentShapeIds = new Set(drawShapes.map(shape => shape.id));
-      const newShapes = drawShapes.filter(shape => !lastProcessedShapeIds.current.has(shape.id));
+      // Filter out eraser strokes (transparent color)
+      const drawStrokes = strokes.filter(stroke => stroke.color !== 'transparent');
       
-      console.log('🆕 New shapes detected:', newShapes.length);
-      
-      // Update processed shapes
-      lastProcessedShapeIds.current = currentShapeIds;
+      console.log('✏️ Draw strokes after filtering:', drawStrokes.length);
 
-      // Generate more realistic text progression
-      const mockText = generateProgressiveText(drawShapes.length, newShapes.length);
+      if (drawStrokes.length === 0) {
+        return '';
+      }
+
+      // Generate progressive text based on stroke count and complexity
+      const mockText = generateProgressiveText(drawStrokes);
       
       // Log ALL recognized text to console
       console.log('📝 RECOGNIZED TEXT:', mockText);
       console.log('📊 Text Stats:', {
         length: mockText.length,
         words: mockText.split(' ').filter(w => w.length > 0).length,
-        shapes: drawShapes.length,
-        newShapes: newShapes.length
+        strokes: drawStrokes.length,
+        totalPoints: drawStrokes.reduce((sum, stroke) => sum + stroke.points.length, 0)
       });
       
       return mockText;
@@ -52,25 +55,16 @@ export function useHandwritingRecognition(editor: Editor | null) {
       console.error('❌ Error processing strokes:', error);
       return recognizedText;
     }
-  }, [editor, recognizedText]);
+  }, [recognizedText]);
 
-  const startRecognition = useCallback(() => {
-    if (!editor) {
-      console.log('⚠️ No editor available for recognition');
-      return;
-    }
-
-    const shapes = editor.getCurrentPageShapes();
-    const currentShapeCount = shapes.filter(shape => shape.type === 'draw').length;
-    
+  const startRecognition = useCallback((strokes: Stroke[]) => {
     console.log('🎯 Recognition triggered:', {
-      currentShapes: currentShapeCount,
-      lastShapes: lastShapeCountRef.current,
-      shouldProcess: currentShapeCount !== lastShapeCountRef.current
+      currentStrokes: strokes.length,
+      lastStrokes: lastStrokeCount.current,
+      shouldProcess: strokes.length !== lastStrokeCount.current
     });
 
-    // Process even if shape count is the same (shapes might have been modified)
-    lastShapeCountRef.current = currentShapeCount;
+    lastStrokeCount.current = strokes.length;
     setIsRecognizing(true);
 
     // Clear previous timeout
@@ -78,11 +72,11 @@ export function useHandwritingRecognition(editor: Editor | null) {
       clearTimeout(recognitionTimeoutRef.current);
     }
 
-    // Shorter debounce for more responsive feedback
+    // Debounce recognition for better performance
     recognitionTimeoutRef.current = setTimeout(async () => {
       try {
         console.log('⏰ Recognition timeout triggered, processing...');
-        const newText = await processStrokes();
+        const newText = await processStrokes(strokes);
         console.log('✅ Setting recognized text:', newText);
         setRecognizedText(newText);
       } catch (error) {
@@ -90,40 +84,8 @@ export function useHandwritingRecognition(editor: Editor | null) {
       } finally {
         setIsRecognizing(false);
       }
-    }, 500); // Reduced from 800ms to 500ms for faster response
-  }, [editor, processStrokes]);
-
-  // Clear text when editor is cleared
-  useEffect(() => {
-    if (!editor) return;
-
-    const handleChange = () => {
-      const shapes = editor.getCurrentPageShapes();
-      const drawShapes = shapes.filter(shape => shape.type === 'draw');
-      
-      // If all draw shapes are removed, clear the text
-      if (drawShapes.length === 0 && recognizedText) {
-        console.log('🧹 All shapes cleared, resetting text');
-        setRecognizedText('');
-        lastProcessedShapeIds.current.clear();
-        lastShapeCountRef.current = 0;
-      }
-    };
-
-    editor.on('change', handleChange);
-    
-    return () => {
-      editor.off('change', handleChange);
-    };
-  }, [editor, recognizedText]);
-
-  useEffect(() => {
-    return () => {
-      if (recognitionTimeoutRef.current) {
-        clearTimeout(recognitionTimeoutRef.current);
-      }
-    };
-  }, []);
+    }, 800);
+  }, [processStrokes]);
 
   return {
     isRecognizing,
@@ -132,8 +94,8 @@ export function useHandwritingRecognition(editor: Editor | null) {
   };
 }
 
-// Improved text generation that responds to drawing activity
-function generateProgressiveText(totalShapes: number, newShapes: number): string {
+// Enhanced text generation based on stroke analysis
+function generateProgressiveText(strokes: any[]): string {
   // Base vocabulary for generating realistic text
   const words = [
     'The', 'quick', 'brown', 'fox', 'jumps', 'over', 'the', 'lazy', 'dog',
@@ -153,21 +115,37 @@ function generateProgressiveText(totalShapes: number, newShapes: number): string
     'Each word brings new possibilities to life.',
     'Stories have the power to transport us anywhere.',
     'Creative writing opens doors to infinite worlds.',
-    'Every sentence is a step on a journey of discovery.'
+    'Every sentence is a step on a journey of discovery.',
+    'The art of writing connects hearts and minds.',
+    'Words dance across the canvas of imagination.',
+    'Every stroke tells a story waiting to unfold.'
   ];
 
-  // Progressive text based on shape count
-  if (totalShapes === 0) return '';
-  if (totalShapes <= 2) return words[0]; // "The"
-  if (totalShapes <= 4) return words.slice(0, 2).join(' '); // "The quick"
-  if (totalShapes <= 6) return words.slice(0, 3).join(' '); // "The quick brown"
-  if (totalShapes <= 8) return words.slice(0, 4).join(' '); // "The quick brown fox"
-  if (totalShapes <= 12) return words.slice(0, 6).join(' '); // "The quick brown fox jumps over"
-  if (totalShapes <= 16) return sentences[0]; // Full first sentence
-  if (totalShapes <= 24) return sentences.slice(0, 2).join(' '); // Two sentences
-  if (totalShapes <= 32) return sentences.slice(0, 3).join(' '); // Three sentences
+  // Calculate complexity based on total points and stroke count
+  const totalPoints = strokes.reduce((sum, stroke) => sum + stroke.points.length, 0);
+  const avgPointsPerStroke = totalPoints / strokes.length;
+  const complexity = strokes.length * (avgPointsPerStroke / 10);
+
+  console.log('📈 Text generation metrics:', {
+    strokes: strokes.length,
+    totalPoints,
+    avgPointsPerStroke: avgPointsPerStroke.toFixed(1),
+    complexity: complexity.toFixed(1)
+  });
+
+  // Progressive text based on complexity
+  if (strokes.length === 0) return '';
+  if (strokes.length <= 1) return words[0]; // "The"
+  if (strokes.length <= 2) return words.slice(0, 2).join(' '); // "The quick"
+  if (strokes.length <= 3) return words.slice(0, 3).join(' '); // "The quick brown"
+  if (strokes.length <= 4) return words.slice(0, 4).join(' '); // "The quick brown fox"
+  if (strokes.length <= 6) return words.slice(0, 6).join(' '); // "The quick brown fox jumps over"
+  if (strokes.length <= 8) return sentences[0]; // Full first sentence
+  if (strokes.length <= 12) return sentences.slice(0, 2).join(' '); // Two sentences
+  if (strokes.length <= 16) return sentences.slice(0, 3).join(' '); // Three sentences
+  if (strokes.length <= 20) return sentences.slice(0, 4).join(' '); // Four sentences
   
-  // For many shapes, return multiple sentences
-  const sentenceCount = Math.min(Math.floor(totalShapes / 8), sentences.length);
+  // For many strokes, return multiple sentences based on complexity
+  const sentenceCount = Math.min(Math.floor(complexity / 4) + 1, sentences.length);
   return sentences.slice(0, sentenceCount).join(' ');
 }

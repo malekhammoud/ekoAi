@@ -1,32 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Tldraw, Editor, TLComponents } from 'tldraw';
-import 'tldraw/tldraw.css';
 import { ControlPanel } from './components/ControlPanel';
 import { VoiceFeedback } from './components/VoiceFeedback';
 import { TextAnalyzer } from './components/TextAnalyzer';
 import { CreativePrompts } from './components/CreativePrompts';
 import { GrammarChecker } from './components/GrammarChecker';
+import { CustomCanvas } from './components/CustomCanvas';
 import { LearningModes } from './types';
 import { useHandwritingRecognition } from './hooks/useHandwritingRecognition';
 import { useAIFeedback } from './hooks/useAIFeedback';
 
 function App() {
-  const [editor, setEditor] = useState<Editor | null>(null);
   const [learningMode, setLearningMode] = useState<LearningModes>('creativity');
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
   const [currentPrompt, setCurrentPrompt] = useState('');
   
-  const { isRecognizing, recognizedText, startRecognition } = useHandwritingRecognition(editor);
+  const { isRecognizing, recognizedText, startRecognition } = useHandwritingRecognition();
   const { feedback, isGeneratingFeedback, generateFeedback } = useAIFeedback();
-
-  // Custom components for tldraw
-  const components: TLComponents = {
-    // Hide some UI elements for cleaner look
-    ActionsMenu: null,
-    HelpMenu: null,
-    ZoomMenu: null,
-    MainMenu: null,
-  };
 
   // Generate feedback when text changes
   useEffect(() => {
@@ -37,29 +26,9 @@ function App() {
     }
   }, [recognizedText, learningMode, generateFeedback]);
 
-  const handleEditorMount = (editor: Editor) => {
-    console.log('🎨 Editor mounted successfully');
-    setEditor(editor);
-    
-    // Listen to changes in the canvas with more detailed logging
-    editor.on('change', (change) => {
-      console.log('✏️ Canvas changed:', {
-        source: change.source,
-        changes: Object.keys(change.changes)
-      });
-      startRecognition();
-    });
-
-    // Also listen to pointer events for immediate feedback
-    editor.on('pointer-down', () => {
-      console.log('👆 Pointer down - starting to draw');
-    });
-
-    editor.on('pointer-up', () => {
-      console.log('👆 Pointer up - finished drawing stroke');
-      // Trigger recognition immediately when user stops drawing
-      setTimeout(() => startRecognition(), 100);
-    });
+  const handleStrokeComplete = (strokes: any[]) => {
+    console.log('✏️ Stroke completed, total strokes:', strokes.length);
+    startRecognition(strokes);
   };
 
   return (
@@ -112,11 +81,12 @@ function App() {
       )}
 
       {/* Main Canvas */}
-      <div className="h-full w-full pt-20">
-        <Tldraw
-          onMount={handleEditorMount}
-          components={components}
-          className="canvas-container"
+      <div className="h-full w-full pt-20 flex items-center justify-center">
+        <CustomCanvas
+          width={800}
+          height={600}
+          onStrokeComplete={handleStrokeComplete}
+          className="shadow-2xl"
         />
       </div>
 
