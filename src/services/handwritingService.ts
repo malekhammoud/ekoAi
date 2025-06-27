@@ -80,16 +80,24 @@ export class HandwritingService {
         t: stroke.points.map((_, i) => stroke.timestamp + i * 10)
       }));
 
-      const response = await fetch(AI_CONFIG.handwriting.apiUrl, {
+      const response = await fetch(`${AI_CONFIG.handwriting.apiUrl}/convert`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': AI_CONFIG.handwriting.apiKey
         },
         body: JSON.stringify({
-          type: 'TEXT',
-          protocol: 'WEBSOCKET',
-          apiVersion: '4.0',
+          conversion: {
+            type: 'TEXT'
+          },
+          configuration: {
+            lang: 'en_US',
+            export: {
+              'text/plain': {
+                charset: 'UTF-8'
+              }
+            }
+          },
           strokes: myScriptStrokes
         })
       });
@@ -134,7 +142,7 @@ export class HandwritingService {
       console.log('🔍 Using AI (Gemini) for handwriting recognition');
       
       const response = await fetch(
-        `${AI_CONFIG.google.baseURL}/models/gemini-pro-vision:generateContent?key=${AI_CONFIG.google.apiKey}`,
+        `${AI_CONFIG.google.baseURL}/models/${AI_CONFIG.google.visionModel}:generateContent?key=${AI_CONFIG.google.apiKey}`,
         {
           method: 'POST',
           headers: {
