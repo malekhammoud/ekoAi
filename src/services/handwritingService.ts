@@ -142,7 +142,7 @@ export class HandwritingService {
       console.log('🔍 Using AI (Gemini) for handwriting recognition');
       
       const response = await fetch(
-        `${AI_CONFIG.google.baseURL}/models/${AI_CONFIG.google.visionModel}:generateContent?key=${AI_CONFIG.google.apiKey}`,
+        `${AI_CONFIG.google.visionBaseURL}/models/${AI_CONFIG.google.visionModel}:generateContent?key=${AI_CONFIG.google.apiKey}`,
         {
           method: 'POST',
           headers: {
