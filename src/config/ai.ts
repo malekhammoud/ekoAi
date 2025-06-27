@@ -29,12 +29,19 @@ export const AI_CONFIG = {
   }
 };
 
+// Helper function to validate if an API key is properly formatted and not empty
+const isValidApiKey = (apiKey: string | undefined): boolean => {
+  return !!(apiKey && apiKey.trim() && apiKey !== 'undefined' && apiKey !== 'null');
+};
+
 // Validate required environment variables
 export const validateAIConfig = () => {
   const errors: string[] = [];
   
-  if (!AI_CONFIG.google.apiKey && !AI_CONFIG.openai.apiKey) {
-    errors.push('Either VITE_GOOGLE_AI_API_KEY or VITE_OPENAI_API_KEY is required for AI feedback');
+  if (!isValidApiKey(AI_CONFIG.google.apiKey) && 
+      !isValidApiKey(AI_CONFIG.openai.apiKey) && 
+      !isValidApiKey(AI_CONFIG.anthropic.apiKey)) {
+    errors.push('No valid AI API keys found. The app will use mock responses.');
   }
   
   if (errors.length > 0) {
@@ -46,13 +53,15 @@ export const validateAIConfig = () => {
 
 // Check if AI services are available
 export const isAIAvailable = () => {
-  return !!(AI_CONFIG.google.apiKey || AI_CONFIG.openai.apiKey || AI_CONFIG.anthropic.apiKey);
+  return !!(isValidApiKey(AI_CONFIG.google.apiKey) || 
+           isValidApiKey(AI_CONFIG.openai.apiKey) || 
+           isValidApiKey(AI_CONFIG.anthropic.apiKey));
 };
 
-// Get preferred AI provider
+// Get preferred AI provider - only return if API key is valid
 export const getPreferredProvider = (): 'google' | 'openai' | 'anthropic' | null => {
-  if (AI_CONFIG.google.apiKey) return 'google';
-  if (AI_CONFIG.openai.apiKey) return 'openai';
-  if (AI_CONFIG.anthropic.apiKey) return 'anthropic';
+  if (isValidApiKey(AI_CONFIG.google.apiKey)) return 'google';
+  if (isValidApiKey(AI_CONFIG.openai.apiKey)) return 'openai';
+  if (isValidApiKey(AI_CONFIG.anthropic.apiKey)) return 'anthropic';
   return null;
 };
