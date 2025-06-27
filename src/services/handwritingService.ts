@@ -84,7 +84,7 @@ export class HandwritingService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'applicationKey': AI_CONFIG.handwriting.apiKey
+          'x-api-key': AI_CONFIG.handwriting.apiKey
         },
         body: JSON.stringify({
           type: 'TEXT',

@@ -3,7 +3,7 @@ export const AI_CONFIG = {
   google: {
     apiKey: import.meta.env.VITE_GOOGLE_AI_API_KEY,
     model: import.meta.env.VITE_GOOGLE_AI_MODEL || 'gemini-pro',
-    baseURL: 'https://generativelanguage.googleapis.com/v1beta'
+    baseURL: 'https://generativelanguage.googleapis.com/v1'
   },
   openai: {
     apiKey: import.meta.env.VITE_OPENAI_API_KEY,
