@@ -14,7 +14,7 @@ function App() {
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
   const [currentPrompt, setCurrentPrompt] = useState('');
   
-  const { isRecognizing, recognizedText, startRecognition } = useHandwritingRecognition();
+  const { isRecognizing, recognizedText, startRecognition, clearRecognition } = useHandwritingRecognition();
   const { feedback, isGeneratingFeedback, generateFeedback } = useAIFeedback();
 
   // Generate feedback when text changes
@@ -26,9 +26,14 @@ function App() {
     }
   }, [recognizedText, learningMode, generateFeedback]);
 
-  const handleStrokeComplete = (strokes: any[]) => {
+  const handleStrokeComplete = (strokes: any[], canvas?: HTMLCanvasElement) => {
     console.log('✏️ Stroke completed, total strokes:', strokes.length);
-    startRecognition(strokes);
+    
+    if (strokes.length === 0) {
+      clearRecognition();
+    } else {
+      startRecognition(strokes, canvas);
+    }
   };
 
   return (
@@ -55,8 +60,8 @@ function App() {
               {learningMode === 'minimal' && '🎯 Minimal Distraction'}
             </div>
             <div className="text-xs text-green-400 flex items-center space-x-1">
-              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-              <span>AI Ready</span>
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span>Recognition Active</span>
             </div>
           </div>
         </div>
@@ -68,13 +73,18 @@ function App() {
           <div className="glass rounded-2xl p-8 text-center max-w-md">
             <div className="text-6xl mb-4">✍️</div>
             <h2 className="text-xl font-semibold text-white mb-2">Start Writing!</h2>
-            <p className="text-gray-300 text-sm">
-              Use the drawing tools to write or draw on the canvas. 
-              Your handwriting will be recognized and analyzed in real-time.
+            <p className="text-gray-300 text-sm mb-4">
+              Write or draw on the canvas below. Advanced handwriting recognition 
+              will convert your strokes to text in real-time.
             </p>
+            <div className="text-xs text-gray-400 space-y-1">
+              <div>🔍 Multiple recognition methods active</div>
+              <div>🎨 Pattern analysis enabled</div>
+              <div>🤖 AI vision processing ready</div>
+            </div>
             <div className="mt-4 flex items-center justify-center space-x-2 text-xs text-gray-400">
               <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-              <span>Ready for input</span>
+              <span>Ready for handwriting input</span>
             </div>
           </div>
         </div>
@@ -136,7 +146,7 @@ function App() {
               isRecognizing ? 'bg-cyan-400 animate-pulse shadow-lg shadow-cyan-400/50' : 'bg-gray-600'
             }`} />
             <span className="text-sm text-gray-300 font-medium">
-              {isRecognizing ? 'Recognizing...' : 'Ready to write'}
+              {isRecognizing ? 'Analyzing handwriting...' : 'Ready to write'}
             </span>
           </div>
           
@@ -159,16 +169,15 @@ function App() {
       {/* Debug Panel (development only) */}
       {process.env.NODE_ENV === 'development' && (
         <div className="absolute top-32 right-96 z-50 bg-black/90 p-4 rounded-lg text-xs text-white max-w-xs border border-gray-700">
-          <div className="font-bold mb-2 text-cyan-400">🔧 Debug Info:</div>
+          <div className="font-bold mb-2 text-cyan-400">🔧 Handwriting Debug:</div>
           <div className="space-y-1">
             <div><span className="text-gray-400">Text:</span> "{recognizedText.slice(0, 30)}{recognizedText.length > 30 ? '...' : ''}"</div>
             <div><span className="text-gray-400">Length:</span> {recognizedText.length}</div>
             <div><span className="text-gray-400">Words:</span> {recognizedText.split(' ').filter(w => w.length > 0).length}</div>
-            <div><span className="text-gray-400">Feedback:</span> "{feedback.slice(0, 30)}{feedback.length > 30 ? '...' : ''}"</div>
-            <div><span className="text-gray-400">Generating:</span> {isGeneratingFeedback ? 'Yes' : 'No'}</div>
             <div><span className="text-gray-400">Recognizing:</span> {isRecognizing ? 'Yes' : 'No'}</div>
             <div><span className="text-gray-400">Mode:</span> {learningMode}</div>
             <div><span className="text-gray-400">Voice:</span> {isVoiceEnabled ? 'On' : 'Off'}</div>
+            <div><span className="text-gray-400">Methods:</span> Vision + AI + Patterns</div>
           </div>
         </div>
       )}

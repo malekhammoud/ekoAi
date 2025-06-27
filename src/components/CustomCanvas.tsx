@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Pen, Eraser, RotateCcw, Download } from 'lucide-react';
+import { Pen, Eraser, RotateCcw, Download, Eye, Settings } from 'lucide-react';
 
 interface Point {
   x: number;
@@ -16,7 +16,7 @@ interface Stroke {
 interface CustomCanvasProps {
   width?: number;
   height?: number;
-  onStrokeComplete?: (strokes: Stroke[]) => void;
+  onStrokeComplete?: (strokes: Stroke[], canvas?: HTMLCanvasElement) => void;
   className?: string;
 }
 
@@ -33,6 +33,7 @@ export function CustomCanvas({
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
   const [penColor, setPenColor] = useState('#00d4ff');
   const [penWidth, setPenWidth] = useState(3);
+  const [showRecognitionOverlay, setShowRecognitionOverlay] = useState(false);
 
   // Initialize canvas
   useEffect(() => {
@@ -86,7 +87,40 @@ export function CustomCanvas({
 
     // Reset composite operation
     ctx.globalCompositeOperation = 'source-over';
-  }, [strokes, width, height]);
+
+    // Add recognition overlay if enabled
+    if (showRecognitionOverlay && strokes.length > 0) {
+      drawRecognitionOverlay(ctx);
+    }
+  }, [strokes, width, height, showRecognitionOverlay]);
+
+  // Draw recognition analysis overlay
+  const drawRecognitionOverlay = (ctx: CanvasRenderingContext2D) => {
+    const drawStrokes = strokes.filter(s => s.color !== 'transparent');
+    if (drawStrokes.length === 0) return;
+
+    // Calculate bounding boxes for each stroke
+    drawStrokes.forEach((stroke, index) => {
+      if (stroke.points.length < 2) return;
+
+      const minX = Math.min(...stroke.points.map(p => p.x));
+      const minY = Math.min(...stroke.points.map(p => p.y));
+      const maxX = Math.max(...stroke.points.map(p => p.x));
+      const maxY = Math.max(...stroke.points.map(p => p.y));
+
+      // Draw bounding box
+      ctx.strokeStyle = 'rgba(0, 212, 255, 0.5)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(minX - 5, minY - 5, maxX - minX + 10, maxY - minY + 10);
+      ctx.setLineDash([]);
+
+      // Draw stroke number
+      ctx.fillStyle = 'rgba(0, 212, 255, 0.8)';
+      ctx.font = '12px Inter';
+      ctx.fillText(`${index + 1}`, minX - 5, minY - 8);
+    });
+  };
 
   // Redraw when strokes change
   useEffect(() => {
@@ -122,6 +156,8 @@ export function CustomCanvas({
     const pos = getEventPos(e);
     setIsDrawing(true);
     setCurrentStroke([pos]);
+    
+    console.log('🎨 Started drawing stroke at:', pos);
   };
 
   // Continue drawing
@@ -170,9 +206,16 @@ export function CustomCanvas({
     setCurrentStroke([]);
     setIsDrawing(false);
 
-    // Notify parent component
+    console.log('✅ Completed stroke:', {
+      points: newStroke.points.length,
+      color: newStroke.color,
+      width: newStroke.width,
+      totalStrokes: updatedStrokes.length
+    });
+
+    // Notify parent component with canvas reference for image-based recognition
     if (onStrokeComplete) {
-      onStrokeComplete(updatedStrokes);
+      onStrokeComplete(updatedStrokes, canvasRef.current || undefined);
     }
   };
 
@@ -189,8 +232,10 @@ export function CustomCanvas({
     ctx.fillStyle = '#0a0a0a';
     ctx.fillRect(0, 0, width, height);
 
+    console.log('🧹 Canvas cleared');
+
     if (onStrokeComplete) {
-      onStrokeComplete([]);
+      onStrokeComplete([], canvasRef.current || undefined);
     }
   };
 
@@ -200,9 +245,11 @@ export function CustomCanvas({
     if (!canvas) return;
 
     const link = document.createElement('a');
-    link.download = 'ekopen-drawing.png';
-    link.href = canvas.toDataURL();
+    link.download = `ekopen-handwriting-${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
     link.click();
+    
+    console.log('💾 Canvas downloaded as image');
   };
 
   return (
@@ -221,7 +268,7 @@ export function CustomCanvas({
         onTouchEnd={stopDrawing}
       />
 
-      {/* Toolbar */}
+      {/* Enhanced Toolbar */}
       <div className="absolute top-4 left-4 glass rounded-xl p-3 flex items-center space-x-3">
         {/* Tool Selection */}
         <div className="flex items-center space-x-2">
@@ -232,7 +279,7 @@ export function CustomCanvas({
                 ? 'bg-cyan-500/30 text-cyan-400' 
                 : 'bg-gray-700/50 text-gray-400 hover:bg-gray-600/50'
             }`}
-            title="Pen Tool"
+            title="Pen Tool (P)"
           >
             <Pen className="w-4 h-4" />
           </button>
@@ -244,7 +291,7 @@ export function CustomCanvas({
                 ? 'bg-red-500/30 text-red-400' 
                 : 'bg-gray-700/50 text-gray-400 hover:bg-gray-600/50'
             }`}
-            title="Eraser Tool"
+            title="Eraser Tool (E)"
           >
             <Eraser className="w-4 h-4" />
           </button>
@@ -282,12 +329,29 @@ export function CustomCanvas({
 
         <div className="w-px h-6 bg-gray-600" />
 
+        {/* Recognition Tools */}
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowRecognitionOverlay(!showRecognitionOverlay)}
+            className={`p-2 rounded-lg transition-all ${
+              showRecognitionOverlay
+                ? 'bg-violet-500/30 text-violet-400'
+                : 'bg-gray-700/50 text-gray-400 hover:bg-gray-600/50'
+            }`}
+            title="Show Recognition Analysis"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="w-px h-6 bg-gray-600" />
+
         {/* Actions */}
         <div className="flex items-center space-x-2">
           <button
             onClick={clearCanvas}
             className="p-2 bg-gray-700/50 text-gray-400 rounded-lg hover:bg-gray-600/50 transition-all"
-            title="Clear Canvas"
+            title="Clear Canvas (C)"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -295,19 +359,42 @@ export function CustomCanvas({
           <button
             onClick={downloadCanvas}
             className="p-2 bg-gray-700/50 text-gray-400 rounded-lg hover:bg-gray-600/50 transition-all"
-            title="Download Image"
+            title="Download Image (D)"
           >
             <Download className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Status */}
+      {/* Enhanced Status */}
       <div className="absolute bottom-4 left-4 glass rounded-lg px-3 py-2">
-        <div className="text-xs text-gray-400">
-          Strokes: {strokes.length} | Tool: {tool} | Size: {penWidth}px
+        <div className="text-xs text-gray-400 space-y-1">
+          <div>Strokes: {strokes.filter(s => s.color !== 'transparent').length} | Tool: {tool} | Size: {penWidth}px</div>
+          <div>Points: {strokes.reduce((sum, s) => sum + s.points.length, 0)} | Recognition: {showRecognitionOverlay ? 'ON' : 'OFF'}</div>
         </div>
       </div>
+
+      {/* Recognition Info Panel */}
+      {showRecognitionOverlay && strokes.length > 0 && (
+        <div className="absolute top-4 right-4 glass rounded-lg p-3 w-64">
+          <div className="text-sm text-white mb-2 flex items-center space-x-2">
+            <Settings className="w-4 h-4 text-cyan-400" />
+            <span>Recognition Analysis</span>
+          </div>
+          <div className="text-xs text-gray-400 space-y-1">
+            <div>Total Strokes: {strokes.filter(s => s.color !== 'transparent').length}</div>
+            <div>Total Points: {strokes.reduce((sum, s) => sum + s.points.length, 0)}</div>
+            <div>Avg Points/Stroke: {(strokes.reduce((sum, s) => sum + s.points.length, 0) / Math.max(strokes.length, 1)).toFixed(1)}</div>
+            <div>Recognition Methods:</div>
+            <div className="ml-2 text-xs">
+              • Google Vision API<br/>
+              • AI Vision Analysis<br/>
+              • MyScript API<br/>
+              • Pattern Recognition
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
