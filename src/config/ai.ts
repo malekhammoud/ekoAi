@@ -1,5 +1,10 @@
 // AI Configuration and API clients
 export const AI_CONFIG = {
+  google: {
+    apiKey: import.meta.env.VITE_GOOGLE_AI_API_KEY,
+    model: import.meta.env.VITE_GOOGLE_AI_MODEL || 'gemini-pro',
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta'
+  },
   openai: {
     apiKey: import.meta.env.VITE_OPENAI_API_KEY,
     model: import.meta.env.VITE_OPENAI_MODEL || 'gpt-4-turbo-preview',
@@ -8,10 +13,6 @@ export const AI_CONFIG = {
   anthropic: {
     apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
     model: import.meta.env.VITE_ANTHROPIC_MODEL || 'claude-3-sonnet-20240229'
-  },
-  google: {
-    apiKey: import.meta.env.VITE_GOOGLE_AI_API_KEY,
-    model: import.meta.env.VITE_GOOGLE_AI_MODEL || 'gemini-pro'
   },
   handwriting: {
     apiUrl: import.meta.env.VITE_HANDWRITING_API_URL,
@@ -32,8 +33,8 @@ export const AI_CONFIG = {
 export const validateAIConfig = () => {
   const errors: string[] = [];
   
-  if (!AI_CONFIG.openai.apiKey) {
-    errors.push('VITE_OPENAI_API_KEY is required for AI feedback');
+  if (!AI_CONFIG.google.apiKey && !AI_CONFIG.openai.apiKey) {
+    errors.push('Either VITE_GOOGLE_AI_API_KEY or VITE_OPENAI_API_KEY is required for AI feedback');
   }
   
   if (errors.length > 0) {
@@ -45,5 +46,13 @@ export const validateAIConfig = () => {
 
 // Check if AI services are available
 export const isAIAvailable = () => {
-  return !!(AI_CONFIG.openai.apiKey || AI_CONFIG.anthropic.apiKey || AI_CONFIG.google.apiKey);
+  return !!(AI_CONFIG.google.apiKey || AI_CONFIG.openai.apiKey || AI_CONFIG.anthropic.apiKey);
+};
+
+// Get preferred AI provider
+export const getPreferredProvider = (): 'google' | 'openai' | 'anthropic' | null => {
+  if (AI_CONFIG.google.apiKey) return 'google';
+  if (AI_CONFIG.openai.apiKey) return 'openai';
+  if (AI_CONFIG.anthropic.apiKey) return 'anthropic';
+  return null;
 };
