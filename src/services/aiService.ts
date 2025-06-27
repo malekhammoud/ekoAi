@@ -188,11 +188,6 @@ export class AIService {
   }
 
   private buildPrompt(text: string, mode: LearningModes): string {
-    // Special handling for startup message
-    if (text.includes("I'm starting a new writing session")) {
-      return "Respond with a brief, encouraging welcome message for a new writing session. Keep it under 15 words and be enthusiastic.";
-    }
-
     const basePrompt = `You are an encouraging AI writing tutor. Analyze this text and provide brief, helpful feedback: "${text}"`;
     
     switch (mode) {
@@ -209,20 +204,6 @@ export class AIService {
 
   private generateMockFeedback(text: string, mode: LearningModes): string {
     console.log('🤖 Generating mock feedback for mode:', mode);
-    
-    // Special handling for startup message
-    if (text.includes("I'm starting a new writing session")) {
-      const welcomeMessages = [
-        "Welcome! I'm excited to help you write amazing stories today!",
-        "Hello! Ready to create something wonderful together? Let's begin!",
-        "Great to see you! I'm here to support your creative journey.",
-        "Welcome back! Let's make today's writing session fantastic!",
-        "Hi there! I'm ready to help you express your amazing ideas!"
-      ];
-      const welcome = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
-      console.log('🤖 Generated welcome message:', welcome);
-      return welcome;
-    }
     
     // Enhanced mock feedback that's more realistic and varied
     const mockResponses = {
