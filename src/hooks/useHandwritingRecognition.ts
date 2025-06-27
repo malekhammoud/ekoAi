@@ -18,9 +18,9 @@ export function useHandwritingRecognition(editor: Editor | null) {
         return '';
       }
 
-      // Simulate handwriting recognition processing
-      // In a real app, you'd send the stroke data to an ML service
-      const mockText = generateMockRecognizedText(drawShapes.length, recognizedText);
+      // Generate more realistic text progression
+      const mockText = generateMockRecognizedText(drawShapes.length);
+      console.log('Generated text:', mockText);
       
       return mockText;
     } catch (error) {
@@ -40,6 +40,7 @@ export function useHandwritingRecognition(editor: Editor | null) {
       return;
     }
 
+    console.log('Starting recognition for', currentShapeCount, 'shapes');
     lastShapeCountRef.current = currentShapeCount;
     setIsRecognizing(true);
 
@@ -52,13 +53,14 @@ export function useHandwritingRecognition(editor: Editor | null) {
     recognitionTimeoutRef.current = setTimeout(async () => {
       try {
         const newText = await processStrokes();
+        console.log('Setting recognized text:', newText);
         setRecognizedText(newText);
       } catch (error) {
         console.error('Recognition error:', error);
       } finally {
         setIsRecognizing(false);
       }
-    }, 1000); // Reduced to 1 second for faster feedback
+    }, 800); // Even faster feedback
   }, [editor, processStrokes]);
 
   useEffect(() => {
@@ -76,36 +78,24 @@ export function useHandwritingRecognition(editor: Editor | null) {
   };
 }
 
-// Mock function to simulate handwriting recognition
-function generateMockRecognizedText(shapeCount: number, currentText: string): string {
-  const mockPhrases = [
-    "The quick brown fox jumps over the lazy dog.",
-    "Writing is a journey of discovery and creativity.",
-    "Every word we write shapes our thoughts and dreams.",
-    "Creativity flows like water finding its own path.",
-    "Great writers are made through practice and persistence.",
-    "The pen is mightier than the sword in changing minds.",
-    "Stories have the power to transform hearts and souls.",
-    "In writing, we find our voice and share our truth.",
-    "Words are the building blocks of imagination and wonder.",
-    "Through writing, we connect with others across time and space."
+// Improved mock function to simulate handwriting recognition
+function generateMockRecognizedText(shapeCount: number): string {
+  // Progressive text generation based on stroke count
+  const textProgression = [
+    "", // 0 shapes
+    "The", // 1-2 shapes
+    "The quick", // 3-4 shapes
+    "The quick brown", // 5-6 shapes
+    "The quick brown fox", // 7-8 shapes
+    "The quick brown fox jumps", // 9-10 shapes
+    "The quick brown fox jumps over", // 11-12 shapes
+    "The quick brown fox jumps over the", // 13-14 shapes
+    "The quick brown fox jumps over the lazy", // 15-16 shapes
+    "The quick brown fox jumps over the lazy dog.", // 17-18 shapes
+    "The quick brown fox jumps over the lazy dog. Writing is fun!", // 19-20 shapes
+    "The quick brown fox jumps over the lazy dog. Writing is fun! I love creating stories.", // 21+ shapes
   ];
 
-  // Generate more realistic text progression
-  if (shapeCount < 5) {
-    return "The quick brown";
-  } else if (shapeCount < 10) {
-    return "The quick brown fox jumps";
-  } else if (shapeCount < 15) {
-    return "The quick brown fox jumps over the lazy dog.";
-  } else if (shapeCount < 25) {
-    return "The quick brown fox jumps over the lazy dog. Writing is a journey";
-  } else if (shapeCount < 35) {
-    return "The quick brown fox jumps over the lazy dog. Writing is a journey of discovery and creativity.";
-  } else {
-    // Add more content for longer writing sessions
-    const baseText = "The quick brown fox jumps over the lazy dog. Writing is a journey of discovery and creativity.";
-    const additionalIndex = Math.floor((shapeCount - 35) / 10) % mockPhrases.length;
-    return baseText + " " + mockPhrases[additionalIndex];
-  }
+  const index = Math.min(Math.floor(shapeCount / 2), textProgression.length - 1);
+  return textProgression[index];
 }

@@ -28,18 +28,22 @@ function App() {
     MainMenu: null,
   };
 
+  // Generate feedback when text changes
   useEffect(() => {
-    if (recognizedText && recognizedText.length > 10 && learningMode !== 'minimal') {
-      console.log('Generating feedback for:', recognizedText);
+    console.log('Text changed:', recognizedText);
+    if (recognizedText && recognizedText.length > 5 && learningMode !== 'minimal') {
+      console.log('Triggering feedback generation for mode:', learningMode);
       generateFeedback(recognizedText, learningMode);
     }
   }, [recognizedText, learningMode, generateFeedback]);
 
   const handleEditorMount = (editor: Editor) => {
+    console.log('Editor mounted');
     setEditor(editor);
     
     // Listen to changes in the canvas
     editor.on('change', () => {
+      console.log('Canvas changed, starting recognition');
       startRecognition();
     });
   };
@@ -140,14 +144,18 @@ function App() {
         </div>
       </div>
 
-      {/* Debug Panel (remove in production) */}
+      {/* Debug Panel (development only) */}
       {process.env.NODE_ENV === 'development' && (
-        <div className="absolute top-32 right-96 z-50 bg-black/80 p-4 rounded-lg text-xs text-white max-w-xs">
-          <div className="font-bold mb-2">Debug Info:</div>
-          <div>Recognized: {recognizedText.slice(0, 50)}...</div>
-          <div>Feedback: {feedback.slice(0, 50)}...</div>
-          <div>Generating: {isGeneratingFeedback ? 'Yes' : 'No'}</div>
-          <div>Mode: {learningMode}</div>
+        <div className="absolute top-32 right-96 z-50 bg-black/90 p-4 rounded-lg text-xs text-white max-w-xs border border-gray-700">
+          <div className="font-bold mb-2 text-cyan-400">🔧 Debug Info:</div>
+          <div className="space-y-1">
+            <div><span className="text-gray-400">Text:</span> "{recognizedText.slice(0, 30)}..."</div>
+            <div><span className="text-gray-400">Feedback:</span> "{feedback.slice(0, 30)}..."</div>
+            <div><span className="text-gray-400">Generating:</span> {isGeneratingFeedback ? 'Yes' : 'No'}</div>
+            <div><span className="text-gray-400">Recognizing:</span> {isRecognizing ? 'Yes' : 'No'}</div>
+            <div><span className="text-gray-400">Mode:</span> {learningMode}</div>
+            <div><span className="text-gray-400">Voice:</span> {isVoiceEnabled ? 'On' : 'Off'}</div>
+          </div>
         </div>
       )}
     </div>
