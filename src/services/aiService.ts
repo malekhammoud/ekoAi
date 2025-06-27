@@ -13,6 +13,8 @@ export class AIService {
 
   async generateFeedback(text: string, mode: LearningModes): Promise<string> {
     console.log('🤖 AIService: Generating feedback for text:', text.slice(0, 50));
+    console.log('🤖 AIService: Full text length:', text.length);
+    console.log('🤖 AIService: Mode:', mode);
     
     const provider = getPreferredProvider();
     console.log('🤖 AIService: Using provider:', provider);
@@ -50,7 +52,7 @@ export class AIService {
 
   private async generateGeminiFeedback(text: string, mode: LearningModes): Promise<string> {
     const prompt = this.buildPrompt(text, mode);
-    console.log('🤖 AIService: Sending request to Gemini');
+    console.log('🤖 AIService: Sending request to Gemini with prompt:', prompt);
     
     const requestBody = {
       contents: [{
@@ -97,6 +99,8 @@ export class AIService {
       }
     );
 
+    console.log('🤖 Gemini response status:', response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('🤖 Gemini API error:', response.status, errorText);
@@ -104,7 +108,7 @@ export class AIService {
     }
 
     const data = await response.json();
-    console.log('🤖 Gemini response:', data);
+    console.log('🤖 Gemini response data:', JSON.stringify(data, null, 2));
     
     const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
@@ -113,11 +117,13 @@ export class AIService {
       throw new Error('No content received from Gemini');
     }
 
+    console.log('🤖 Extracted content from Gemini:', content);
     return content.trim();
   }
 
   private async generateOpenAIFeedback(text: string, mode: LearningModes): Promise<string> {
     const prompt = this.buildPrompt(text, mode);
+    console.log('🤖 AIService: Sending request to OpenAI');
     
     const response = await fetch(`${AI_CONFIG.openai.baseURL}/chat/completions`, {
       method: 'POST',
@@ -152,6 +158,7 @@ export class AIService {
 
   private async generateAnthropicFeedback(text: string, mode: LearningModes): Promise<string> {
     const prompt = this.buildPrompt(text, mode);
+    console.log('🤖 AIService: Sending request to Anthropic');
     
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -181,6 +188,11 @@ export class AIService {
   }
 
   private buildPrompt(text: string, mode: LearningModes): string {
+    // Special handling for startup message
+    if (text.includes("I'm starting a new writing session")) {
+      return "Respond with a brief, encouraging welcome message for a new writing session. Keep it under 15 words and be enthusiastic.";
+    }
+
     const basePrompt = `You are an encouraging AI writing tutor. Analyze this text and provide brief, helpful feedback: "${text}"`;
     
     switch (mode) {
@@ -197,6 +209,20 @@ export class AIService {
 
   private generateMockFeedback(text: string, mode: LearningModes): string {
     console.log('🤖 Generating mock feedback for mode:', mode);
+    
+    // Special handling for startup message
+    if (text.includes("I'm starting a new writing session")) {
+      const welcomeMessages = [
+        "Welcome! I'm excited to help you write amazing stories today!",
+        "Hello! Ready to create something wonderful together? Let's begin!",
+        "Great to see you! I'm here to support your creative journey.",
+        "Welcome back! Let's make today's writing session fantastic!",
+        "Hi there! I'm ready to help you express your amazing ideas!"
+      ];
+      const welcome = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+      console.log('🤖 Generated welcome message:', welcome);
+      return welcome;
+    }
     
     // Enhanced mock feedback that's more realistic and varied
     const mockResponses = {

@@ -20,7 +20,14 @@ export function useHandwritingRecognition(editor: Editor | null) {
 
       // Generate more realistic text progression
       const mockText = generateMockRecognizedText(drawShapes.length);
-      console.log('Generated text:', mockText);
+      
+      // Log ALL recognized text to console
+      console.log('📝 RECOGNIZED TEXT:', mockText);
+      console.log('📊 Text Stats:', {
+        length: mockText.length,
+        words: mockText.split(' ').length,
+        shapes: drawShapes.length
+      });
       
       return mockText;
     } catch (error) {
@@ -40,7 +47,7 @@ export function useHandwritingRecognition(editor: Editor | null) {
       return;
     }
 
-    console.log('Starting recognition for', currentShapeCount, 'shapes');
+    console.log('🎯 Starting recognition for', currentShapeCount, 'shapes');
     lastShapeCountRef.current = currentShapeCount;
     setIsRecognizing(true);
 
@@ -53,14 +60,14 @@ export function useHandwritingRecognition(editor: Editor | null) {
     recognitionTimeoutRef.current = setTimeout(async () => {
       try {
         const newText = await processStrokes();
-        console.log('Setting recognized text:', newText);
+        console.log('✅ Setting recognized text:', newText);
         setRecognizedText(newText);
       } catch (error) {
-        console.error('Recognition error:', error);
+        console.error('❌ Recognition error:', error);
       } finally {
         setIsRecognizing(false);
       }
-    }, 800); // Even faster feedback
+    }, 800);
   }, [editor, processStrokes]);
 
   useEffect(() => {

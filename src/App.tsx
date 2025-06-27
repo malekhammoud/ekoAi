@@ -9,12 +9,14 @@ import { GrammarChecker } from './components/GrammarChecker';
 import { LearningModes } from './types';
 import { useHandwritingRecognition } from './hooks/useHandwritingRecognition';
 import { useAIFeedback } from './hooks/useAIFeedback';
+import { AIService } from './services/aiService';
 
 function App() {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [learningMode, setLearningMode] = useState<LearningModes>('creativity');
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
   const [currentPrompt, setCurrentPrompt] = useState('');
+  const [hasStartupMessageSent, setHasStartupMessageSent] = useState(false);
   
   const { isRecognizing, recognizedText, startRecognition } = useHandwritingRecognition(editor);
   const { feedback, isGeneratingFeedback, generateFeedback } = useAIFeedback();
@@ -28,22 +30,46 @@ function App() {
     MainMenu: null,
   };
 
+  // Send startup message to Gemini when app loads
+  useEffect(() => {
+    const sendStartupMessage = async () => {
+      if (!hasStartupMessageSent) {
+        console.log('🚀 Sending startup message to Gemini...');
+        try {
+          const aiService = AIService.getInstance();
+          const startupMessage = "Hello! I'm starting a new writing session with EkoPen. Please be ready to provide encouraging and helpful feedback as I write.";
+          
+          // Send a startup message to initialize the AI
+          await aiService.generateFeedback(startupMessage, 'creativity');
+          console.log('✅ Startup message sent successfully');
+          setHasStartupMessageSent(true);
+        } catch (error) {
+          console.error('❌ Failed to send startup message:', error);
+          // Don't block the app if startup message fails
+          setHasStartupMessageSent(true);
+        }
+      }
+    };
+
+    sendStartupMessage();
+  }, [hasStartupMessageSent]);
+
   // Generate feedback when text changes
   useEffect(() => {
-    console.log('Text changed:', recognizedText);
+    console.log('📄 Text changed:', recognizedText);
     if (recognizedText && recognizedText.length > 5 && learningMode !== 'minimal') {
-      console.log('Triggering feedback generation for mode:', learningMode);
+      console.log('🎯 Triggering feedback generation for mode:', learningMode);
       generateFeedback(recognizedText, learningMode);
     }
   }, [recognizedText, learningMode, generateFeedback]);
 
   const handleEditorMount = (editor: Editor) => {
-    console.log('Editor mounted');
+    console.log('🎨 Editor mounted');
     setEditor(editor);
     
     // Listen to changes in the canvas
     editor.on('change', () => {
-      console.log('Canvas changed, starting recognition');
+      console.log('✏️ Canvas changed, starting recognition');
       startRecognition();
     });
   };
@@ -65,10 +91,18 @@ function App() {
             </h1>
           </div>
           
-          <div className="text-sm text-gray-400">
-            {learningMode === 'grammar' && '📝 Grammar Focus'}
-            {learningMode === 'creativity' && '🎨 Creativity Boost'}
-            {learningMode === 'minimal' && '🎯 Minimal Distraction'}
+          <div className="text-sm text-gray-400 flex items-center space-x-4">
+            <div>
+              {learningMode === 'grammar' && '📝 Grammar Focus'}
+              {learningMode === 'creativity' && '🎨 Creativity Boost'}
+              {learningMode === 'minimal' && '🎯 Minimal Distraction'}
+            </div>
+            {hasStartupMessageSent && (
+              <div className="text-xs text-green-400 flex items-center space-x-1">
+                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                <span>AI Ready</span>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -155,6 +189,7 @@ function App() {
             <div><span className="text-gray-400">Recognizing:</span> {isRecognizing ? 'Yes' : 'No'}</div>
             <div><span className="text-gray-400">Mode:</span> {learningMode}</div>
             <div><span className="text-gray-400">Voice:</span> {isVoiceEnabled ? 'On' : 'Off'}</div>
+            <div><span className="text-gray-400">AI Ready:</span> {hasStartupMessageSent ? 'Yes' : 'No'}</div>
           </div>
         </div>
       )}
