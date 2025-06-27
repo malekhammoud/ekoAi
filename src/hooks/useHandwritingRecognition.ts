@@ -58,7 +58,7 @@ export function useHandwritingRecognition(editor: Editor | null) {
       } finally {
         setIsRecognizing(false);
       }
-    }, 1500); // Wait 1.5 seconds after user stops drawing
+    }, 1000); // Reduced to 1 second for faster feedback
   }, [editor, processStrokes]);
 
   useEffect(() => {
@@ -80,44 +80,32 @@ export function useHandwritingRecognition(editor: Editor | null) {
 function generateMockRecognizedText(shapeCount: number, currentText: string): string {
   const mockPhrases = [
     "The quick brown fox jumps over the lazy dog.",
-    "In the beginning was the Word, and the Word was with creativity.",
-    "Writing is thinking on paper, and drawing is thinking with your hands.",
-    "Every story has a beginning, a middle, and an end - but not necessarily in that order.",
-    "The pen is mightier than the sword, but the stylus is mightier than both.",
-    "Creativity flows like water - it finds its own path and shape.",
-    "Great writers are not born, they are made through practice and persistence.",
-    "The canvas of imagination knows no boundaries or limitations.",
-    "Words have power - they can build bridges or tear down walls.",
-    "In the digital age, handwriting connects us to our humanity."
+    "Writing is a journey of discovery and creativity.",
+    "Every word we write shapes our thoughts and dreams.",
+    "Creativity flows like water finding its own path.",
+    "Great writers are made through practice and persistence.",
+    "The pen is mightier than the sword in changing minds.",
+    "Stories have the power to transform hearts and souls.",
+    "In writing, we find our voice and share our truth.",
+    "Words are the building blocks of imagination and wonder.",
+    "Through writing, we connect with others across time and space."
   ];
 
-  const sentences = currentText.split('.').filter(s => s.trim());
-  const wordsPerShape = Math.max(2, Math.floor(shapeCount / 3));
-  
-  if (shapeCount < 3) {
-    return currentText;
+  // Generate more realistic text progression
+  if (shapeCount < 5) {
+    return "The quick brown";
+  } else if (shapeCount < 10) {
+    return "The quick brown fox jumps";
+  } else if (shapeCount < 15) {
+    return "The quick brown fox jumps over the lazy dog.";
+  } else if (shapeCount < 25) {
+    return "The quick brown fox jumps over the lazy dog. Writing is a journey";
+  } else if (shapeCount < 35) {
+    return "The quick brown fox jumps over the lazy dog. Writing is a journey of discovery and creativity.";
+  } else {
+    // Add more content for longer writing sessions
+    const baseText = "The quick brown fox jumps over the lazy dog. Writing is a journey of discovery and creativity.";
+    const additionalIndex = Math.floor((shapeCount - 35) / 10) % mockPhrases.length;
+    return baseText + " " + mockPhrases[additionalIndex];
   }
-
-  // Add new content based on shape count
-  const targetSentences = Math.floor(shapeCount / 8) + 1;
-  
-  if (sentences.length < targetSentences) {
-    const newSentence = mockPhrases[Math.floor(Math.random() * mockPhrases.length)];
-    return currentText + (currentText ? ' ' : '') + newSentence;
-  }
-
-  // Add words to existing content
-  const additionalWords = [
-    'creativity', 'inspiration', 'imagination', 'innovation', 'expression',
-    'beautiful', 'elegant', 'thoughtful', 'meaningful', 'profound',
-    'story', 'narrative', 'journey', 'adventure', 'discovery'
-  ];
-
-  const wordCount = currentText.split(' ').length;
-  if (wordCount < wordsPerShape * 2) {
-    const newWord = additionalWords[Math.floor(Math.random() * additionalWords.length)];
-    return currentText + (currentText ? ' ' : '') + newWord;
-  }
-
-  return currentText;
 }

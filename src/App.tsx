@@ -14,10 +14,9 @@ function App() {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [learningMode, setLearningMode] = useState<LearningModes>('creativity');
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
-  const [recognizedText, setRecognizedText] = useState('');
   const [currentPrompt, setCurrentPrompt] = useState('');
   
-  const { isRecognizing, startRecognition } = useHandwritingRecognition(editor);
+  const { isRecognizing, recognizedText, startRecognition } = useHandwritingRecognition(editor);
   const { feedback, isGeneratingFeedback, generateFeedback } = useAIFeedback();
 
   // Custom components for tldraw
@@ -30,7 +29,8 @@ function App() {
   };
 
   useEffect(() => {
-    if (recognizedText && learningMode !== 'minimal') {
+    if (recognizedText && recognizedText.length > 10 && learningMode !== 'minimal') {
+      console.log('Generating feedback for:', recognizedText);
       generateFeedback(recognizedText, learningMode);
     }
   }, [recognizedText, learningMode, generateFeedback]);
@@ -87,7 +87,7 @@ function App() {
         isRecognizing={isRecognizing}
       />
 
-      {/* Voice Feedback */}
+      {/* Voice Feedback with Subtitles */}
       {isVoiceEnabled && (
         <VoiceFeedback
           feedback={feedback}
@@ -99,7 +99,7 @@ function App() {
       {recognizedText && (
         <TextAnalyzer
           text={recognizedText}
-          onTextUpdate={setRecognizedText}
+          onTextUpdate={() => {}} // Not needed for display-only
         />
       )}
 
@@ -131,8 +131,25 @@ function App() {
               {recognizedText.length} characters recognized
             </div>
           )}
+          
+          {feedback && (
+            <div className="text-xs text-cyan-400">
+              🎧 AI feedback ready
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Debug Panel (remove in production) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="absolute top-32 right-96 z-50 bg-black/80 p-4 rounded-lg text-xs text-white max-w-xs">
+          <div className="font-bold mb-2">Debug Info:</div>
+          <div>Recognized: {recognizedText.slice(0, 50)}...</div>
+          <div>Feedback: {feedback.slice(0, 50)}...</div>
+          <div>Generating: {isGeneratingFeedback ? 'Yes' : 'No'}</div>
+          <div>Mode: {learningMode}</div>
+        </div>
+      )}
     </div>
   );
 }

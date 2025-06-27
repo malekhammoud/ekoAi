@@ -12,32 +12,45 @@ export class AIService {
   }
 
   async generateFeedback(text: string, mode: LearningModes): Promise<string> {
+    console.log('AIService: Generating feedback for text:', text.slice(0, 50));
+    
     const provider = getPreferredProvider();
+    console.log('AIService: Using provider:', provider);
     
     if (!provider) {
-      // Fallback to mock feedback if no API key
+      console.log('AIService: No provider available, using mock feedback');
       return this.generateMockFeedback(text, mode);
     }
 
     try {
+      let result: string;
       switch (provider) {
         case 'google':
-          return await this.generateGeminiFeedback(text, mode);
+          result = await this.generateGeminiFeedback(text, mode);
+          break;
         case 'openai':
-          return await this.generateOpenAIFeedback(text, mode);
+          result = await this.generateOpenAIFeedback(text, mode);
+          break;
         case 'anthropic':
-          return await this.generateAnthropicFeedback(text, mode);
+          result = await this.generateAnthropicFeedback(text, mode);
+          break;
         default:
-          return this.generateMockFeedback(text, mode);
+          result = this.generateMockFeedback(text, mode);
       }
+      
+      console.log('AIService: Generated feedback:', result);
+      return result;
     } catch (error) {
       console.error('AI Service error:', error);
-      return this.generateMockFeedback(text, mode);
+      const fallback = this.generateMockFeedback(text, mode);
+      console.log('AIService: Using fallback feedback:', fallback);
+      return fallback;
     }
   }
 
   private async generateGeminiFeedback(text: string, mode: LearningModes): Promise<string> {
     const prompt = this.buildPrompt(text, mode);
+    console.log('AIService: Sending request to Gemini with prompt:', prompt.slice(0, 100));
     
     const response = await fetch(
       `${AI_CONFIG.google.baseURL}/models/${AI_CONFIG.google.model}:generateContent?key=${AI_CONFIG.google.apiKey}`,
@@ -73,13 +86,18 @@ export class AIService {
     );
 
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Gemini API error:', response.status, errorText);
+      throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('Gemini response:', data);
+    
     const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
     if (!content) {
+      console.error('No content received from Gemini:', data);
       throw new Error('No content received from Gemini');
     }
 
@@ -194,30 +212,34 @@ export class AIService {
     
     switch (mode) {
       case 'grammar':
-        return `${basePrompt}\n\nFocus on grammar, spelling, and sentence structure. Be encouraging and constructive. Keep feedback under 30 words and speak as if talking directly to the writer.`;
+        return `${basePrompt}\n\nFocus on grammar, spelling, and sentence structure. Be encouraging and constructive. Keep feedback under 25 words and speak as if talking directly to the writer. Be conversational and supportive.`;
       case 'creativity':
-        return `${basePrompt}\n\nFocus on creativity, style, and storytelling. Praise creative elements and suggest improvements. Keep feedback under 30 words and be enthusiastic.`;
+        return `${basePrompt}\n\nFocus on creativity, style, and storytelling. Praise creative elements and suggest improvements. Keep feedback under 25 words and be enthusiastic and encouraging.`;
       case 'minimal':
-        return `${basePrompt}\n\nProvide very brief, positive encouragement only. Keep feedback under 15 words and be supportive.`;
+        return `${basePrompt}\n\nProvide very brief, positive encouragement only. Keep feedback under 10 words and be supportive.`;
       default:
         return basePrompt;
     }
   }
 
   private generateMockFeedback(text: string, mode: LearningModes): string {
-    // Fallback mock feedback when AI service is unavailable
+    // Enhanced mock feedback that's more realistic and varied
     const mockResponses = {
       grammar: [
-        "Your sentence structure is improving! Consider varying your sentence lengths for better flow.",
+        "Your sentence structure is improving nicely! Consider varying your sentence lengths for better flow.",
         "Good use of punctuation. Try reading aloud to catch any remaining grammar issues.",
         "Nice work! Watch for subject-verb agreement in longer sentences.",
-        "Great progress with grammar! Your writing is becoming more polished."
+        "Great progress with grammar! Your writing is becoming more polished and clear.",
+        "Excellent attention to detail! Your grammar skills are really developing well.",
+        "Well done! Your punctuation and capitalization are spot on in this piece."
       ],
       creativity: [
         "I love your creative word choice! Try adding more sensory details to enhance the imagery.",
         "Great storytelling! Consider showing rather than telling to make it more engaging.",
-        "Your writing voice is developing well. Experiment with different sentence structures.",
-        "Wonderful creativity! Your imagination really shines through in this piece."
+        "Your writing voice is developing beautifully. Experiment with different sentence structures.",
+        "Wonderful creativity! Your imagination really shines through in this piece.",
+        "Fantastic use of descriptive language! Your readers can really picture the scene.",
+        "Your narrative flow is excellent! Keep exploring different ways to express your ideas."
       ],
       minimal: [
         "Great progress!",
@@ -225,7 +247,11 @@ export class AIService {
         "Nice work!",
         "You're improving!",
         "Excellent effort!",
-        "Well done!"
+        "Well done!",
+        "Keep going!",
+        "Good job!",
+        "Nice flow!",
+        "Great ideas!"
       ]
     };
 
