@@ -5,7 +5,7 @@ export const AI_CONFIG = {
     model: import.meta.env.VITE_GOOGLE_AI_MODEL || 'gemini-pro',
     visionModel: import.meta.env.VITE_GOOGLE_AI_VISION_MODEL || 'gemini-pro-vision',
     baseURL: 'https://generativelanguage.googleapis.com/v1',
-    visionBaseURL: 'https://generativelanguage.googleapis.com/v1beta'
+    visionBaseURL: 'https://generativelanguage.googleapis.com/v1'
   },
   openai: {
     apiKey: import.meta.env.VITE_OPENAI_API_KEY,
