@@ -165,22 +165,6 @@ function App() {
           )}
         </div>
       </div>
-
-      {/* Debug Panel (development only) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="absolute top-32 right-96 z-50 bg-black/90 p-4 rounded-lg text-xs text-white max-w-xs border border-gray-700">
-          <div className="font-bold mb-2 text-cyan-400">🔧 Handwriting Debug:</div>
-          <div className="space-y-1">
-            <div><span className="text-gray-400">Text:</span> "{recognizedText.slice(0, 30)}{recognizedText.length > 30 ? '...' : ''}"</div>
-            <div><span className="text-gray-400">Length:</span> {recognizedText.length}</div>
-            <div><span className="text-gray-400">Words:</span> {recognizedText.split(' ').filter(w => w.length > 0).length}</div>
-            <div><span className="text-gray-400">Recognizing:</span> {isRecognizing ? 'Yes' : 'No'}</div>
-            <div><span className="text-gray-400">Mode:</span> {learningMode}</div>
-            <div><span className="text-gray-400">Voice:</span> {isVoiceEnabled ? 'On' : 'Off'}</div>
-            <div><span className="text-gray-400">Methods:</span> Vision + AI + Patterns</div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
