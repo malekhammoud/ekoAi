@@ -2,8 +2,8 @@
 export const AI_CONFIG = {
   google: {
     apiKey: import.meta.env.VITE_GOOGLE_AI_API_KEY,
-    model: import.meta.env.VITE_GOOGLE_AI_MODEL || 'gemini-pro',
-    visionModel: import.meta.env.VITE_GOOGLE_AI_VISION_MODEL || 'gemini-pro-vision',
+    model: import.meta.env.VITE_GOOGLE_AI_MODEL || 'gemini-1.5-flash',
+    visionModel: import.meta.env.VITE_GOOGLE_AI_VISION_MODEL || 'gemini-1.5-flash',
     baseURL: 'https://generativelanguage.googleapis.com/v1',
     visionBaseURL: 'https://generativelanguage.googleapis.com/v1'
   },
@@ -66,4 +66,27 @@ export const getPreferredProvider = (): 'google' | 'openai' | 'anthropic' | null
   if (isValidApiKey(AI_CONFIG.openai.apiKey)) return 'openai';
   if (isValidApiKey(AI_CONFIG.anthropic.apiKey)) return 'anthropic';
   return null;
+};
+
+// Check if error is due to quota exhaustion
+export const isQuotaError = (error: any): boolean => {
+  return error?.status === 429 || 
+         error?.code === 429 || 
+         (error?.message && error.message.includes('quota')) ||
+         (error?.message && error.message.includes('RESOURCE_EXHAUSTED'));
+};
+
+// Check if error is due to disabled API
+export const isAPIDisabledError = (error: any): boolean => {
+  return error?.status === 403 || 
+         error?.code === 403 || 
+         (error?.message && error.message.includes('SERVICE_DISABLED')) ||
+         (error?.message && error.message.includes('not been used'));
+};
+
+// Check if error is due to deprecated model
+export const isDeprecatedModelError = (error: any): boolean => {
+  return error?.status === 404 || 
+         error?.code === 404 || 
+         (error?.message && error.message.includes('deprecated'));
 };
