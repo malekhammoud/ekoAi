@@ -29,7 +29,7 @@ export function useHandwritingRecognition() {
         return '';
       }
 
-      // Filter out eraser strokes
+      // Filter out eraser strokes (transparent color)
       const drawStrokes = strokes.filter(stroke => stroke.color !== 'transparent');
       
       console.log('✏️ Draw strokes after filtering:', drawStrokes.length);
@@ -38,7 +38,7 @@ export function useHandwritingRecognition() {
         return '';
       }
 
-      // Use enhanced pattern recognition for now
+      // Generate progressive text based on stroke analysis
       const recognizedText = generateProgressiveText(drawStrokes);
       
       // Log ALL recognized text to console with detailed stats
@@ -64,9 +64,10 @@ export function useHandwritingRecognition() {
       currentStrokes: strokes.length,
       lastStrokes: lastStrokeCount.current,
       hasCanvas: !!canvas,
-      shouldProcess: strokes.length !== lastStrokeCount.current
+      shouldProcess: true // Always process for immediate feedback
     });
 
+    // Always update stroke count and process
     lastStrokeCount.current = strokes.length;
     setIsRecognizing(true);
 
@@ -75,7 +76,7 @@ export function useHandwritingRecognition() {
       clearTimeout(recognitionTimeoutRef.current);
     }
 
-    // Debounce recognition for better performance
+    // Immediate processing for better responsiveness
     recognitionTimeoutRef.current = setTimeout(async () => {
       try {
         console.log('⏰ Recognition timeout triggered, starting handwriting analysis...');
@@ -90,7 +91,7 @@ export function useHandwritingRecognition() {
       } finally {
         setIsRecognizing(false);
       }
-    }, 800); // Reduced timeout for faster response
+    }, 300); // Reduced timeout for faster response
   }, [processStrokes]);
 
   // Clear recognition when strokes are cleared
@@ -136,7 +137,7 @@ function generateProgressiveText(strokes: any[]): string {
     'Handwriting connects our thoughts to the page.'
   ];
 
-  // Analyze stroke complexity
+  // Analyze stroke complexity for better text generation
   const totalPoints = strokes.reduce((sum: number, stroke: any) => sum + stroke.points.length, 0);
   const avgPointsPerStroke = totalPoints / strokes.length;
   const strokeCount = strokes.length;

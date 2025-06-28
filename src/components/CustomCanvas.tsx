@@ -53,6 +53,8 @@ export function CustomCanvas({
     // Set drawing properties
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+    
+    console.log('🎨 Canvas initialized:', { width, height });
   }, [width, height]);
 
   // Redraw all strokes
@@ -73,7 +75,7 @@ export function CustomCanvas({
 
       ctx.strokeStyle = stroke.color === 'transparent' ? '#ffffff' : stroke.color;
       ctx.lineWidth = stroke.width;
-      ctx.globalCompositeOperation = stroke.color === 'transparent' ? 'source-over' : 'source-over';
+      ctx.globalCompositeOperation = 'source-over';
 
       ctx.beginPath();
       ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
@@ -185,7 +187,7 @@ export function CustomCanvas({
     }
   };
 
-  // Stop drawing
+  // Stop drawing and trigger recognition
   const stopDrawing = () => {
     if (!isDrawing || currentStroke.length === 0) return;
 
@@ -208,17 +210,16 @@ export function CustomCanvas({
       totalStrokes: updatedStrokes.length
     });
 
-    // Notify parent component with canvas reference for recognition
+    // Trigger recognition immediately after stroke completion
     if (onStrokeComplete) {
-      // Small delay to ensure canvas is updated
-      setTimeout(() => {
-        onStrokeComplete(updatedStrokes, canvasRef.current || undefined);
-      }, 50);
+      console.log('🔄 Triggering recognition for', updatedStrokes.length, 'strokes');
+      onStrokeComplete(updatedStrokes, canvasRef.current || undefined);
     }
   };
 
   // Clear canvas
   const clearCanvas = () => {
+    console.log('🧹 Clearing canvas');
     setStrokes([]);
     setCurrentStroke([]);
     const canvas = canvasRef.current;
@@ -229,8 +230,6 @@ export function CustomCanvas({
 
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
-
-    console.log('🧹 Canvas cleared');
 
     if (onStrokeComplete) {
       onStrokeComplete([], canvasRef.current || undefined);
@@ -258,9 +257,11 @@ export function CustomCanvas({
       switch (e.key.toLowerCase()) {
         case 'p':
           setTool('pen');
+          console.log('⌨️ Switched to pen tool');
           break;
         case 'e':
           setTool('eraser');
+          console.log('⌨️ Switched to eraser tool');
           break;
         case 'c':
           clearCanvas();
