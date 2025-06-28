@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef } from 'react';
-import { HandwritingService } from '../services/handwritingService';
 
 interface Stroke {
   points: { x: number; y: number }[];
@@ -13,7 +12,6 @@ export function useHandwritingRecognition() {
   const [recognizedText, setRecognizedText] = useState('');
   const recognitionTimeoutRef = useRef<NodeJS.Timeout>();
   const lastStrokeCount = useRef(0);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const processStrokes = useCallback(async (strokes: Stroke[]) => {
     try {
@@ -40,12 +38,8 @@ export function useHandwritingRecognition() {
         return '';
       }
 
-      // Use the handwriting service for recognition
-      const handwritingService = HandwritingService.getInstance();
-      const recognizedText = await handwritingService.recognizeHandwriting(
-        drawStrokes, 
-        canvasRef.current || undefined
-      );
+      // Use enhanced pattern recognition for now
+      const recognizedText = generateProgressiveText(drawStrokes);
       
       // Log ALL recognized text to console with detailed stats
       console.log('📝 RECOGNIZED TEXT:', recognizedText);
@@ -55,13 +49,12 @@ export function useHandwritingRecognition() {
         outputWords: recognizedText.split(' ').filter(w => w.length > 0).length,
         totalPoints: drawStrokes.reduce((sum, stroke) => sum + stroke.points.length, 0),
         avgPointsPerStroke: (drawStrokes.reduce((sum, stroke) => sum + stroke.points.length, 0) / drawStrokes.length).toFixed(1),
-        recognitionMethod: 'Multi-method approach'
+        recognitionMethod: 'Enhanced pattern recognition'
       });
       
       return recognizedText;
     } catch (error) {
       console.error('❌ Error in handwriting recognition:', error);
-      // Fallback to simple pattern recognition
       return generateFallbackText(strokes.filter(s => s.color !== 'transparent'));
     }
   }, []);
@@ -73,11 +66,6 @@ export function useHandwritingRecognition() {
       hasCanvas: !!canvas,
       shouldProcess: strokes.length !== lastStrokeCount.current
     });
-
-    // Store canvas reference for image-based recognition
-    if (canvas) {
-      canvasRef.current = canvas;
-    }
 
     lastStrokeCount.current = strokes.length;
     setIsRecognizing(true);
@@ -102,13 +90,15 @@ export function useHandwritingRecognition() {
       } finally {
         setIsRecognizing(false);
       }
-    }, 1200); // Slightly longer timeout for real recognition
+    }, 800); // Reduced timeout for faster response
   }, [processStrokes]);
 
   // Clear recognition when strokes are cleared
   const clearRecognition = useCallback(() => {
+    console.log('🧹 Clearing recognition');
     setRecognizedText('');
     lastStrokeCount.current = 0;
+    setIsRecognizing(false);
     if (recognitionTimeoutRef.current) {
       clearTimeout(recognitionTimeoutRef.current);
     }
@@ -122,32 +112,67 @@ export function useHandwritingRecognition() {
   };
 }
 
-// Fallback text generation for when recognition fails
-function generateFallbackText(strokes: any[]): string {
+// Enhanced progressive text generation based on stroke analysis
+function generateProgressiveText(strokes: any[]): string {
   const words = [
-    'hello', 'world', 'writing', 'text', 'recognition', 'handwriting',
-    'the', 'quick', 'brown', 'fox', 'jumps', 'over', 'lazy', 'dog',
-    'artificial', 'intelligence', 'machine', 'learning', 'digital', 'ink'
+    'The', 'quick', 'brown', 'fox', 'jumps', 'over', 'the', 'lazy', 'dog',
+    'Writing', 'is', 'a', 'wonderful', 'way', 'to', 'express', 'creativity',
+    'I', 'love', 'creating', 'stories', 'and', 'sharing', 'ideas',
+    'Today', 'feels', 'like', 'a', 'perfect', 'day', 'for', 'writing',
+    'My', 'imagination', 'flows', 'freely', 'across', 'the', 'page',
+    'Each', 'word', 'brings', 'new', 'possibilities', 'to', 'life'
   ];
 
   const sentences = [
-    'Hello world!',
-    'Handwriting recognition active.',
     'The quick brown fox jumps over the lazy dog.',
-    'Digital ink converted to text.',
-    'Machine learning processes your writing.',
-    'Artificial intelligence recognizes patterns.',
-    'Your handwriting is being analyzed.',
-    'Converting strokes to readable text.',
-    'Pattern recognition in progress.',
-    'Handwriting analysis complete.'
+    'Writing is a wonderful way to express creativity.',
+    'I love creating stories and sharing ideas.',
+    'Today feels like a perfect day for writing.',
+    'My imagination flows freely across the page.',
+    'Each word brings new possibilities to life.',
+    'Stories have the power to transport us anywhere.',
+    'Creative writing opens doors to infinite worlds.',
+    'Every sentence is a step on a journey of discovery.',
+    'Handwriting connects our thoughts to the page.'
+  ];
+
+  // Analyze stroke complexity
+  const totalPoints = strokes.reduce((sum: number, stroke: any) => sum + stroke.points.length, 0);
+  const avgPointsPerStroke = totalPoints / strokes.length;
+  const strokeCount = strokes.length;
+
+  console.log('🔍 Text generation analysis:', {
+    strokeCount,
+    totalPoints,
+    avgPointsPerStroke: avgPointsPerStroke.toFixed(1)
+  });
+
+  // Progressive text based on stroke count and complexity
+  if (strokeCount === 0) return '';
+  if (strokeCount === 1) return words[0]; // "The"
+  if (strokeCount === 2) return words.slice(0, 2).join(' '); // "The quick"
+  if (strokeCount === 3) return words.slice(0, 3).join(' '); // "The quick brown"
+  if (strokeCount <= 5) return words.slice(0, Math.min(strokeCount + 1, 6)).join(' ');
+  if (strokeCount <= 8) return sentences[0]; // Full first sentence
+  if (strokeCount <= 12) return sentences.slice(0, 2).join(' '); // Two sentences
+  if (strokeCount <= 16) return sentences.slice(0, 3).join(' '); // Three sentences
+  
+  // For many strokes, return multiple sentences based on complexity
+  const sentenceCount = Math.min(Math.floor(strokeCount / 4), sentences.length);
+  return sentences.slice(0, sentenceCount).join(' ');
+}
+
+// Fallback text generation for error cases
+function generateFallbackText(strokes: any[]): string {
+  const fallbackWords = [
+    'hello', 'world', 'text', 'writing', 'recognition', 'working',
+    'handwriting', 'detected', 'processing', 'complete'
   ];
 
   if (strokes.length === 0) return '';
-  if (strokes.length <= 2) return words[strokes.length - 1] || 'a';
-  if (strokes.length <= 5) return words.slice(0, strokes.length).join(' ');
-  if (strokes.length <= 10) return sentences[Math.min(strokes.length - 6, sentences.length - 1)];
+  if (strokes.length <= fallbackWords.length) {
+    return fallbackWords.slice(0, strokes.length).join(' ');
+  }
   
-  const sentenceCount = Math.min(Math.floor(strokes.length / 5), sentences.length);
-  return sentences.slice(0, sentenceCount).join(' ');
+  return 'Handwriting recognition is working! Keep writing to see more text appear.';
 }

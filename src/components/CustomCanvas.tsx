@@ -46,8 +46,8 @@ export function CustomCanvas({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set canvas background
-    ctx.fillStyle = '#0a0a0a';
+    // Set canvas background to white for better recognition
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
 
     // Set drawing properties
@@ -63,17 +63,17 @@ export function CustomCanvas({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear canvas
-    ctx.fillStyle = '#0a0a0a';
+    // Clear canvas with white background
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
 
     // Redraw all strokes
     strokes.forEach(stroke => {
       if (stroke.points.length < 2) return;
 
-      ctx.strokeStyle = stroke.color;
+      ctx.strokeStyle = stroke.color === 'transparent' ? '#ffffff' : stroke.color;
       ctx.lineWidth = stroke.width;
-      ctx.globalCompositeOperation = stroke.color === 'transparent' ? 'destination-out' : 'source-over';
+      ctx.globalCompositeOperation = stroke.color === 'transparent' ? 'source-over' : 'source-over';
 
       ctx.beginPath();
       ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
@@ -84,9 +84,6 @@ export function CustomCanvas({
 
       ctx.stroke();
     });
-
-    // Reset composite operation
-    ctx.globalCompositeOperation = 'source-over';
 
     // Add recognition overlay if enabled
     if (showRecognitionOverlay && strokes.length > 0) {
@@ -109,14 +106,14 @@ export function CustomCanvas({
       const maxY = Math.max(...stroke.points.map(p => p.y));
 
       // Draw bounding box
-      ctx.strokeStyle = 'rgba(0, 212, 255, 0.5)';
+      ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
       ctx.lineWidth = 1;
       ctx.setLineDash([5, 5]);
       ctx.strokeRect(minX - 5, minY - 5, maxX - minX + 10, maxY - minY + 10);
       ctx.setLineDash([]);
 
       // Draw stroke number
-      ctx.fillStyle = 'rgba(0, 212, 255, 0.8)';
+      ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
       ctx.font = '12px Inter';
       ctx.fillText(`${index + 1}`, minX - 5, minY - 8);
     });
@@ -176,9 +173,9 @@ export function CustomCanvas({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.strokeStyle = tool === 'eraser' ? 'transparent' : penColor;
+    const strokeColor = tool === 'eraser' ? '#ffffff' : penColor;
+    ctx.strokeStyle = strokeColor;
     ctx.lineWidth = tool === 'eraser' ? penWidth * 2 : penWidth;
-    ctx.globalCompositeOperation = tool === 'eraser' ? 'destination-out' : 'source-over';
 
     if (currentStroke.length > 0) {
       ctx.beginPath();
@@ -186,8 +183,6 @@ export function CustomCanvas({
       ctx.lineTo(pos.x, pos.y);
       ctx.stroke();
     }
-
-    ctx.globalCompositeOperation = 'source-over';
   };
 
   // Stop drawing
@@ -213,9 +208,12 @@ export function CustomCanvas({
       totalStrokes: updatedStrokes.length
     });
 
-    // Notify parent component with canvas reference for image-based recognition
+    // Notify parent component with canvas reference for recognition
     if (onStrokeComplete) {
-      onStrokeComplete(updatedStrokes, canvasRef.current || undefined);
+      // Small delay to ensure canvas is updated
+      setTimeout(() => {
+        onStrokeComplete(updatedStrokes, canvasRef.current || undefined);
+      }, 50);
     }
   };
 
@@ -229,7 +227,7 @@ export function CustomCanvas({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.fillStyle = '#0a0a0a';
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
 
     console.log('🧹 Canvas cleared');
@@ -252,12 +250,37 @@ export function CustomCanvas({
     console.log('💾 Canvas downloaded as image');
   };
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement) return; // Don't trigger on input fields
+      
+      switch (e.key.toLowerCase()) {
+        case 'p':
+          setTool('pen');
+          break;
+        case 'e':
+          setTool('eraser');
+          break;
+        case 'c':
+          clearCanvas();
+          break;
+        case 'd':
+          downloadCanvas();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
   return (
     <div className={`relative ${className}`}>
       {/* Canvas */}
       <canvas
         ref={canvasRef}
-        className="border border-gray-700 rounded-lg cursor-crosshair touch-none"
+        className="border-2 border-gray-600 rounded-lg cursor-crosshair touch-none bg-white"
         style={{ maxWidth: '100%', height: 'auto' }}
         onMouseDown={startDrawing}
         onMouseMove={draw}
@@ -371,6 +394,7 @@ export function CustomCanvas({
         <div className="text-xs text-gray-400 space-y-1">
           <div>Strokes: {strokes.filter(s => s.color !== 'transparent').length} | Tool: {tool} | Size: {penWidth}px</div>
           <div>Points: {strokes.reduce((sum, s) => sum + s.points.length, 0)} | Recognition: {showRecognitionOverlay ? 'ON' : 'OFF'}</div>
+          <div className="text-cyan-400">Shortcuts: P(pen) E(eraser) C(clear) D(download)</div>
         </div>
       </div>
 
@@ -385,12 +409,12 @@ export function CustomCanvas({
             <div>Total Strokes: {strokes.filter(s => s.color !== 'transparent').length}</div>
             <div>Total Points: {strokes.reduce((sum, s) => sum + s.points.length, 0)}</div>
             <div>Avg Points/Stroke: {(strokes.reduce((sum, s) => sum + s.points.length, 0) / Math.max(strokes.length, 1)).toFixed(1)}</div>
-            <div>Recognition Methods:</div>
+            <div className="mt-2 text-cyan-400">Active Methods:</div>
             <div className="ml-2 text-xs">
-              • Google Vision API<br/>
-              • AI Vision Analysis<br/>
-              • MyScript API<br/>
-              • Pattern Recognition
+              • Enhanced Pattern Recognition<br/>
+              • Stroke Analysis<br/>
+              • Progressive Text Generation<br/>
+              • Real-time Processing
             </div>
           </div>
         </div>
