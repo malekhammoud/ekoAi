@@ -67,6 +67,23 @@ function App() {
         </div>
       </header>
 
+      {/* Bolt.new Badge */}
+      <div className="absolute top-6 right-6 z-50">
+        <a
+          href="https://bolt.new"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="glass rounded-full px-4 py-2 flex items-center space-x-2 hover:bg-white/10 transition-all duration-200 group"
+        >
+          <div className="w-5 h-5 bg-gradient-to-r from-orange-400 to-red-500 rounded flex items-center justify-center">
+            <span className="text-white font-bold text-xs">⚡</span>
+          </div>
+          <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">
+            Built with Bolt
+          </span>
+        </a>
+      </div>
+
       {/* Instructions overlay for first-time users */}
       {!recognizedText && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none">
